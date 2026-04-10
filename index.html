@@ -170,174 +170,135 @@
 <body>
 
 <header>
-  <h1>💰 Cashback</h1>
-  <p>Calcule o cashback da sua compra instantaneamente</p>
+    <h1>💰 Cashback</h1>
+    <p>Calcule o seu benefício instantaneamente</p>
 </header>
 
 <div class="card">
-  <h2>Nova Consulta</h2>
-
-  <div class="field">
-    <label>Tipo de cliente</label>
-    <div class="tipo-selector">
-      <button class="tipo-btn active-normal" id="btn-normal" onclick="selecionarTipo('normal')">Normal</button>
-      <button class="tipo-btn" id="btn-vip" onclick="selecionarTipo('vip')">VIP ⭐</button>
-    </div>
-  </div>
-
-  <div class="input-row">
+    <h2>Nova Consulta</h2>
     <div class="field">
-      <label for="valor">Valor da compra (R$)</label>
-      <input type="text" id="valor" placeholder="Ex: 600,00" oninput="formatarValor(this)" onkeydown="enterCalcula(event)" />
+        <label>Tipo de cliente</label>
+        <div class="tipo-selector">
+            <button class="tipo-btn active-normal" id="btn-normal" onclick="selecionarTipo('normal')">Normal</button>
+            <button class="tipo-btn" id="btn-vip" onclick="selecionarTipo('vip')">VIP ⭐</button>
+        </div>
     </div>
-    <div class="field">
-      <label for="desconto">Desconto (opcional)</label>
-      <div class="desconto-wrap">
-        <input type="text" id="desconto" placeholder="0" oninput="formatarDesconto(this)" onkeydown="enterCalcula(event)" />
-        <span>%</span>
-      </div>
-      <p class="hint">Deixe vazio para sem desconto</p>
+
+    <div style="display: flex; gap: 10px;">
+        <div class="field" style="flex: 2;">
+            <label>Valor da compra (R$)</label>
+            <input type="text" id="valor" placeholder="0,00" oninput="formatarValor(this)" onkeydown="enterCalcula(event)">
+        </div>
+        <div class="field" style="flex: 1;">
+            <label>Desconto (%)</label>
+            <input type="text" id="desconto" placeholder="0" oninput="formatarDesconto(this)" onkeydown="enterCalcula(event)">
+        </div>
     </div>
-  </div>
 
-  <button class="btn-calcular" onclick="calcular()">Calcular Cashback</button>
+    <button class="btn-calcular" onclick="calcular()">Calcular Cashback</button>
+    <div class="erro" id="erro"></div>
 
-  <div class="erro" id="erro"></div>
-
-  <div class="resultado" id="resultado">
-    <div class="resultado-grid">
-      <div class="metric">
-        <span>Valor da compra</span>
-        <strong id="res-valor">—</strong>
-      </div>
-      <div class="metric">
-        <span>Valor com desconto</span>
-        <strong id="res-final">—</strong>
-        <span id="res-desconto-tag"></span>
-      </div>
-      <div class="metric percentual">
-        <span>Percentual de cashback</span>
-        <strong id="res-percentual">—</strong>
-      </div>
-      <div class="metric destaque">
-        <span>Seu cashback</span>
-        <strong id="res-cashback">—</strong>
-      </div>
+    <div class="resultado" id="resultado">
+        <p>Valor Final: <strong id="res-final"></strong></p>
+        <p>Cashback: <strong id="res-cashback"></strong> (<span id="res-percentual"></span>)</p>
     </div>
-  </div>
 </div>
 
 <div class="card">
-  <h2>Histórico deste IP</h2>
-  <div id="historico-conteudo"><div class="vazio">Carregando...</div></div>
+    <h2>Histórico deste IP</h2>
+    <div id="historico-conteudo">Carregando...</div>
 </div>
 
 <script>
-  // ALTERAÇÃO AQUI: Substitua pela URL do seu backend hospedado (ex: Render, Railway)
-  // Lembre-se: O GitHub Pages usa HTTPS, então sua API também deve ser HTTPS.
-  const API = "https://testepraticonology.onrender.com/";
-  
-  let tipoSelecionado = "normal";
+    // URL da sua API no Render (sem barra no final)
+    const API = "https://testepraticonology.onrender.com";
+    let tipoSelecionado = "normal";
 
-  function selecionarTipo(tipo) {
-    tipoSelecionado = tipo;
-    document.getElementById("btn-normal").className = "tipo-btn" + (tipo === "normal" ? " active-normal" : "");
-    document.getElementById("btn-vip").className    = "tipo-btn" + (tipo === "vip"    ? " active-vip"    : "");
-  }
-
-  // ... (funções formatarValor, formatarDesconto, parseValor, fmtBRL e mostrarErro continuam iguais) ...
-
-  async function calcular() {
-    const valorStr = document.getElementById("valor").value.trim();
-    if (!valorStr) { mostrarErro("Por favor, insira o valor da compra."); return; }
-
-    const valor = parseValor(valorStr);
-    if (isNaN(valor) || valor <= 0) { mostrarErro("Valor inválido. Use formato como 600,00"); return; }
-
-    const descontoStr = document.getElementById("desconto").value.trim();
-    const desconto = descontoStr ? parseValor(descontoStr) : 0;
-    if (isNaN(desconto) || desconto < 0 || desconto > 100) {
-      mostrarErro("Desconto inválido. Use um valor entre 0 e 100.");
-      return;
+    function selecionarTipo(tipo) {
+        tipoSelecionado = tipo;
+        document.getElementById("btn-normal").className = "tipo-btn" + (tipo === "normal" ? " active-normal" : "");
+        document.getElementById("btn-vip").className = "tipo-btn" + (tipo === "vip" ? " active-vip" : "");
     }
 
-    const btn = document.querySelector(".btn-calcular");
-    btn.disabled = true;
-    btn.textContent = "Calculando...";
-
-    try {
-      // O fetch agora usará a URL da nuvem
-      const resp = await fetch(`${API}/calcular`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ 
-            tipo_cliente: tipoSelecionado, 
-            valor_compra: valor, 
-            desconto: desconto 
-        }),
-      });
-
-      if (!resp.ok) throw new Error("Erro na resposta da API");
-      const data = await resp.json();
-
-      document.getElementById("res-valor").textContent = fmtBRL(data.valor_compra);
-      document.getElementById("res-final").textContent = fmtBRL(data.valor_final);
-      document.getElementById("res-percentual").textContent = data.percentual.toFixed(1) + "%";
-      document.getElementById("res-cashback").textContent = fmtBRL(data.cashback);
-
-      const tagEl = document.getElementById("res-desconto-tag");
-      if (data.desconto > 0) {
-        tagEl.innerHTML = `<span class="desconto-tag">-${data.desconto.toFixed(1)}% desconto</span>`;
-      } else {
-        tagEl.innerHTML = "";
-      }
-
-      document.getElementById("resultado").classList.add("visivel");
-      carregarHistorico();
-    } catch (err) {
-      mostrarErro("Erro ao conectar com a API na nuvem. Verifique o CORS no backend.");
-      console.error(err);
-    } finally {
-      btn.disabled = false;
-      btn.textContent = "Calcular Cashback";
+    function formatarValor(el) {
+        el.value = el.value.replace(/[^\d,]/g, "");
     }
-  }
 
-  async function carregarHistorico() {
-    const el = document.getElementById("historico-conteudo");
-    try {
-      const resp = await fetch(`${API}/historico`);
-      if (!resp.ok) throw new Error();
-      const dados = await resp.json();
-
-      if (dados.length === 0) {
-        el.innerHTML = '<div class="vazio">Nenhuma consulta encontrada para o seu IP.</div>';
-        return;
-      }
-
-      let html = `<table class="historico-tabela">
-        <thead><tr>
-          <th>Tipo</th><th>Compra</th><th>Desc.</th><th>Final</th><th>Cashback</th>
-        </tr></thead><tbody>`;
-
-      for (const r of dados) {
-        html += `<tr>
-          <td><span class="badge badge-${r.tipo_cliente}">${r.tipo_cliente.toUpperCase()}</span></td>
-          <td>${fmtBRL(r.valor_compra)}</td>
-          <td>${r.desconto > 0 ? r.desconto.toFixed(1) + "%" : "—"}</td>
-          <td>${fmtBRL(r.valor_final)}</td>
-          <td><strong>${fmtBRL(r.cashback)}</strong> <small style="color:var(--muted)">${r.percentual.toFixed(1)}%</small></td>
-        </tr>`;
-      }
-
-      html += "</tbody></table>";
-      el.innerHTML = html;
-    } catch {
-      el.innerHTML = '<div class="vazio">Não foi possível carregar o histórico.</div>';
+    function formatarDesconto(el) {
+        el.value = el.value.replace(/[^\d,]/g, "");
+        const v = parseFloat(el.value.replace(",", "."));
+        if (v > 100) el.value = "100";
     }
-  }
 
-  carregarHistorico();
+    function parseValor(str) {
+        return parseFloat(str.replace(",", "."));
+    }
+
+    function fmtBRL(n) {
+        return n.toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
+    }
+
+    function mostrarErro(msg) {
+        const el = document.getElementById("erro");
+        el.textContent = msg;
+        el.style.display = "block";
+        setTimeout(() => { el.style.display = "none"; }, 4000);
+    }
+
+    function enterCalcula(e) {
+        if (e.key === "Enter") calcular();
+    }
+
+    async function calcular() {
+        const valorStr = document.getElementById("valor").value.trim();
+        if (!valorStr) { mostrarErro("Insira o valor."); return; }
+        
+        const valor = parseValor(valorStr);
+        const descontoStr = document.getElementById("desconto").value.trim();
+        const desconto = descontoStr ? parseValor(descontoStr) : 0;
+
+        try {
+            const resp = await fetch(`${API}/calcular`, {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ tipo_cliente: tipoSelecionado, valor_compra: valor, desconto: desconto })
+            });
+            const data = await resp.json();
+            
+            document.getElementById("res-final").textContent = fmtBRL(data.valor_final);
+            document.getElementById("res-cashback").textContent = fmtBRL(data.cashback);
+            document.getElementById("res-percentual").textContent = data.percentual + "%";
+            document.getElementById("resultado").classList.add("visivel");
+            carregarHistorico();
+        } catch (err) {
+            mostrarErro("Erro ao conectar com a API.");
+        }
+    }
+
+    async function carregarHistorico() {
+        const el = document.getElementById("historico-conteudo");
+        try {
+            const resp = await fetch(`${API}/historico`);
+            const dados = await resp.json();
+            if (dados.length === 0) {
+                el.innerHTML = "Nenhuma consulta para este IP.";
+                return;
+            }
+            let html = '<table class="historico-tabela"><thead><tr><th>Tipo</th><th>Final</th><th>Cashback</th></tr></thead><tbody>';
+            dados.forEach(r => {
+                html += `<tr>
+                    <td><span class="badge badge-${r.tipo_cliente}">${r.tipo_cliente.toUpperCase()}</span></td>
+                    <td>${fmtBRL(r.valor_final)}</td>
+                    <td>${fmtBRL(r.cashback)}</td>
+                </tr>`;
+            });
+            el.innerHTML = html + "</tbody></table>";
+        } catch {
+            el.innerHTML = "Erro ao carregar histórico.";
+        }
+    }
+
+    carregarHistorico();
 </script>
 </body>
 </html>
