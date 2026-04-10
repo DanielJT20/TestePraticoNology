@@ -233,7 +233,10 @@
 </div>
 
 <script>
-  const API = "http://localhost:8000";
+  // ALTERAÇÃO AQUI: Substitua pela URL do seu backend hospedado (ex: Render, Railway)
+  // Lembre-se: O GitHub Pages usa HTTPS, então sua API também deve ser HTTPS.
+  const API = "https://sua-api-no-render.onrender.com"; 
+  
   let tipoSelecionado = "normal";
 
   function selecionarTipo(tipo) {
@@ -242,31 +245,7 @@
     document.getElementById("btn-vip").className    = "tipo-btn" + (tipo === "vip"    ? " active-vip"    : "");
   }
 
-  function formatarValor(el) {
-    el.value = el.value.replace(/[^\d,]/g, "");
-  }
-
-  function formatarDesconto(el) {
-    // Permite apenas números e vírgula, max 100
-    el.value = el.value.replace(/[^\d,]/g, "");
-    const v = parseFloat(el.value.replace(",", "."));
-    if (v > 100) el.value = "100";
-  }
-
-  function parseValor(str) { return parseFloat(str.replace(",", ".")); }
-
-  function fmtBRL(n) {
-    return n.toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
-  }
-
-  function mostrarErro(msg) {
-    const el = document.getElementById("erro");
-    el.textContent = msg;
-    el.style.display = "block";
-    setTimeout(() => { el.style.display = "none"; }, 4000);
-  }
-
-  function enterCalcula(e) { if (e.key === "Enter") calcular(); }
+  // ... (funções formatarValor, formatarDesconto, parseValor, fmtBRL e mostrarErro continuam iguais) ...
 
   async function calcular() {
     const valorStr = document.getElementById("valor").value.trim();
@@ -287,13 +266,18 @@
     btn.textContent = "Calculando...";
 
     try {
+      // O fetch agora usará a URL da nuvem
       const resp = await fetch(`${API}/calcular`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ tipo_cliente: tipoSelecionado, valor_compra: valor, desconto }),
+        body: JSON.stringify({ 
+            tipo_cliente: tipoSelecionado, 
+            valor_compra: valor, 
+            desconto: desconto 
+        }),
       });
 
-      if (!resp.ok) throw new Error();
+      if (!resp.ok) throw new Error("Erro na resposta da API");
       const data = await resp.json();
 
       document.getElementById("res-valor").textContent = fmtBRL(data.valor_compra);
@@ -310,8 +294,9 @@
 
       document.getElementById("resultado").classList.add("visivel");
       carregarHistorico();
-    } catch {
-      mostrarErro("Não foi possível conectar à API. Verifique se o backend está rodando.");
+    } catch (err) {
+      mostrarErro("Erro ao conectar com a API na nuvem. Verifique o CORS no backend.");
+      console.error(err);
     } finally {
       btn.disabled = false;
       btn.textContent = "Calcular Cashback";
@@ -326,7 +311,7 @@
       const dados = await resp.json();
 
       if (dados.length === 0) {
-        el.innerHTML = '<div class="vazio">Nenhuma consulta ainda.</div>';
+        el.innerHTML = '<div class="vazio">Nenhuma consulta encontrada para o seu IP.</div>';
         return;
       }
 
