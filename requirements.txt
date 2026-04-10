@@ -2,5 +2,6 @@ fastapi
 uvicorn
 databases
 asyncpg
+psycopg2-binary
 sqlalchemy
 pydantic
