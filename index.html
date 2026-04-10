@@ -165,6 +165,27 @@
     .badge-vip    { background: #EEEDFE; color: var(--vip); }
 
     .vazio { text-align: center; color: var(--muted); padding: 1.5rem 0; font-size: 0.875rem; }
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+        :root { --bg: #f5f5f4; --surface: #ffffff; --border: #e2e0d8; --text: #1c1b19; --muted: #6b6a64; --accent: #1d9e75; --accent-dark: #0f6e56; --vip: #534AB7; --danger: #D85A30; --radius: 12px; --shadow: 0 1px 4px rgba(0,0,0,0.07); }
+        body { font-family: system-ui, -apple-system, sans-serif; background: var(--bg); color: var(--text); min-height: 100vh; display: flex; flex-direction: column; align-items: center; padding: 2rem 1rem 4rem; }
+        header { text-align: center; margin-bottom: 2rem; }
+        .card { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); box-shadow: var(--shadow); padding: 1.5rem; width: 100%; max-width: 480px; }
+        .card + .card { margin-top: 1.25rem; }
+        .field { margin-bottom: 1rem; }
+        .tipo-selector { display: flex; gap: 0.5rem; }
+        .tipo-btn { flex: 1; padding: 0.6rem 1rem; border: 1.5px solid var(--border); border-radius: 8px; cursor: pointer; }
+        .tipo-btn.active-normal { border-color: var(--accent); background: #e1f5ee; }
+        .tipo-btn.active-vip { border-color: var(--vip); background: #EEEDFE; }
+        input[type="text"] { width: 100%; padding: 0.65rem 0.85rem; border: 1.5px solid var(--border); border-radius: 8px; }
+        .btn-calcular { width: 100%; padding: 0.75rem; background: var(--accent); color: #fff; border: none; border-radius: 8px; cursor: pointer; font-weight: 600; }
+        .resultado { display: none; margin-top: 1.25rem; border-top: 1px solid var(--border); padding-top: 1.25rem; }
+        .resultado.visivel { display: block; }
+        .erro { background: #FAECE7; color: var(--danger); padding: 0.65rem 1rem; border-radius: 8px; display: none; margin-top: 1rem; }
+        .historico-tabela { width: 100%; border-collapse: collapse; font-size: 0.875rem; }
+        .historico-tabela th, .historico-tabela td { padding: 0.5rem; border-bottom: 1px solid var(--bg); text-align: left; }
+        .badge { padding: 2px 8px; border-radius: 20px; font-size: 0.75rem; }
+        .badge-normal { background: #e1f5ee; color: var(--accent-dark); }
+        .badge-vip { background: #EEEDFE; color: var(--vip); }
   </style>
 </head>
 <body>

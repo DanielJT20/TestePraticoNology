@@ -1,26 +1,16 @@
+import os
+from datetime import datetime
+from decimal import Decimal, ROUND_HALF_UP
+
+import databases
+import sqlalchemy
 from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
-from decimal import Decimal, ROUND_HALF_UP
-import databases
-import sqlalchemy
-import os
-from datetime import datetime
 
-# 1. Primeiro inicializamos o App
-app = FastAPI(title="Cashback API")
-
-# 2. Depois configuramos o CORS (Coloquei "*" para facilitar o teste, mas pode manter o seu link do GitHub)
-app.add_middleware(
-    CORSMiddleware,
-    allow_origins=["*"], 
-    allow_methods=["*"],
-    allow_headers=["*"],
-)
-
-# 3. Configuração do Banco (Pega a URL da nuvem ou usa o local de teste)
-# DICA: Se usar Render, a URL começará com postgres://. O 'databases' precisa que mude para postgresql://
-DATABASE_URL = os.getenv("DATABASE_URL", "sqlite:///./test.db") # Usei sqlite para teste local fácil
+# 1. Configuração do Banco de Dados
+DATABASE_URL = os.getenv("DATABASE_URL", "sqlite:///./test.db")
+# Render usa postgres://, mas o driver precisa de postgresql://
 if DATABASE_URL.startswith("postgres://"):
     DATABASE_URL = DATABASE_URL.replace("postgres://", "postgresql://", 1)
 
@@ -41,37 +31,27 @@ consultas = sqlalchemy.Table(
     sqlalchemy.Column("criado_em", sqlalchemy.DateTime, default=datetime.utcnow),
 )
 
+# 2. Inicialização do App (Ordem correta)
+app = FastAPI()
+
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],  # Libera geral para o teste funcionar
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
+
 class CalcularRequest(BaseModel):
     tipo_cliente: str
     valor_compra: float
     desconto: float = 0.0
 
-def calcular_cashback(tipo_cliente: str, valor_compra: float, desconto: float = 0.0) -> dict:
-    tipo = tipo_cliente.lower().strip()
-    valor = Decimal(str(valor_compra))
-    desc = Decimal(str(desconto))
-
-    valor_final = (valor * (1 - desc / 100)).quantize(Decimal("0.01"), rounding=ROUND_HALF_UP)
-    percentual_base = Decimal("5.0")
-    bonus_vip = Decimal("0.5") if tipo == "vip" else Decimal("0")
-    multiplicador = Decimal("2") if valor > Decimal("500") else Decimal("1")
-
-    percentual_final = (percentual_base + bonus_vip) * multiplicador
-    cashback = (valor_final * percentual_final / Decimal("100")).quantize(
-        Decimal("0.01"), rounding=ROUND_HALF_UP
-    )
-
-    return {
-        "valor_final": float(valor_final),
-        "percentual": float(percentual_final),
-        "cashback": float(cashback),
-    }
-
 @app.on_event("startup")
 async def startup():
     await database.connect()
-    # Cria a tabela automaticamente independente se é MySQL ou Postgres
-    engine = sqlalchemy.create_engine(DATABASE_URL.replace("+aiomysql", "").replace("+asyncpg", ""))
+    # Cria a tabela se ela não existir
+    engine = sqlalchemy.create_engine(DATABASE_URL.replace("+asyncpg", ""))
     metadata.create_all(engine)
 
 @app.on_event("shutdown")
@@ -80,35 +60,45 @@ async def shutdown():
 
 @app.post("/calcular")
 async def calcular(request: Request, body: CalcularRequest):
-    # Captura o IP real na nuvem
+    # Pega o IP real (importante para o Render)
     forwarded = request.headers.get("X-Forwarded-For")
     ip = forwarded.split(",")[0].strip() if forwarded else request.client.host
 
-    resultado = calcular_cashback(body.tipo_cliente, body.valor_compra, body.desconto)
+    # Lógica de Cálculo
+    valor = Decimal(str(body.valor_compra))
+    desc = Decimal(str(body.desconto))
+    valor_final = (valor * (1 - desc / 100)).quantize(Decimal("0.01"), rounding=ROUND_HALF_UP)
+    
+    perc_base = Decimal("5.5") if body.tipo_cliente.lower() == "vip" else Decimal("5.0")
+    mult = Decimal("2") if valor > 500 else Decimal("1")
+    perc_final = perc_base * mult
+    
+    cashback = (valor_final * perc_final / 100).quantize(Decimal("0.01"), rounding=ROUND_HALF_UP)
 
+    # Salva no Banco
     query = consultas.insert().values(
         ip=ip,
         tipo_cliente=body.tipo_cliente.lower(),
         valor_compra=body.valor_compra,
         desconto=body.desconto,
-        valor_final=resultado["valor_final"],
-        cashback=resultado["cashback"],
-        percentual=resultado["percentual"],
+        valor_final=float(valor_final),
+        cashback=float(cashback),
+        percentual=float(perc_final),
         criado_em=datetime.utcnow(),
     )
     await database.execute(query)
-    return {**resultado, "tipo_cliente": body.tipo_cliente, "valor_compra": body.valor_compra, "desconto": body.desconto}
+
+    return {
+        "valor_final": float(valor_final),
+        "cashback": float(cashback),
+        "percentual": float(perc_final)
+    }
 
 @app.get("/historico")
 async def historico(request: Request):
     forwarded = request.headers.get("X-Forwarded-For")
     ip = forwarded.split(",")[0].strip() if forwarded else request.client.host
 
-    query = consultas.select().where(consultas.c.ip == ip).order_by(consultas.c.criado_em.desc()).limit(50)
+    query = consultas.select().where(consultas.c.ip == ip).order_by(consultas.c.id.desc())
     rows = await database.fetch_all(query)
-
-    return [dict(r) for r in rows]
-
-@app.get("/health")
-async def health():
-    return {"status": "ok"}
+    return rows
