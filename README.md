@@ -7,8 +7,7 @@ cashback/
 │   ├── .venv             ← Ambiente virtual Python
 │   ├── main.py           ← API FastAPI (cálculo + histórico por IP)
 │   └── requirements.txt
-├── frontend/
-│   └── index.html        ← Frontend estático (HTML/CSS/JS puro)
+├── index.html            ← Frontend estático (HTML/CSS/JS puro)
 ├── cashback.py           ← Script Python standalone (questão 1)
 ├── respostas.docx        ← Documento Word com respostas das questões 2 a 4
 └── README.md
@@ -105,10 +104,9 @@ Documentação automática: http://127.0.0.1:8000/docs
 
 ## 4. Frontend
 
-Abra `frontend/index.html` diretamente no navegador, ou sirva com um servidor estático:
+Abra `index.html` diretamente no navegador, ou sirva com um servidor estático:
 
 ```powershell
-cd frontend
 python -m http.server 3000
 ```
 
