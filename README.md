@@ -1,6 +1,6 @@
 # Cashback App
 
-#LINK APP: https://danieljt20.github.io/TestePraticoNology/
+# LINK APP: https://danieljt20.github.io/TestePraticoNology/
 
 ## Estrutura
 ```
